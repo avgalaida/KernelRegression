@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using System.Windows.Forms.DataVisualization.Charting;
 
 namespace KernelRegression
@@ -78,8 +79,7 @@ namespace KernelRegression
 
         double Noise(int noisePercent, double value)
         {
-            random = new Random();
-            int randomNumber = random.Next(0, 101);
+            int randomNumber = random.Next(1, 101);
             return randomNumber <= noisePercent ? value : 0;
         }
 
@@ -90,21 +90,43 @@ namespace KernelRegression
             {
                 chart.Series["data"].Points.AddXY(point.x, point.y);
             }
-
-            //var max = x.Max();
-            //var min = x.Min();
-            //chart.ChartAreas[0].AxisX.Maximum = max;
-            //chart.ChartAreas[0].AxisX.Minimum = min;
         }
 
-        public double[] X
+        public Sample Bootstrap()
         {
-            get { return x; }
+            int n = this.n;
+            double[] x = this.x;
+            double[] y = this.y;
+            Random random = new Random();
+
+            double[] bootstrapX = new double[n];
+            double[] bootstrapY = new double[n];
+
+            Parallel.For(0, n, i =>
+            {
+                int randomIndex = random.Next(n);
+                bootstrapX[i] = x[randomIndex];
+                bootstrapY[i] = y[randomIndex];
+            });
+
+            return new Sample(n, bootstrapX, bootstrapY);
         }
 
-        public double[] Y
+        Sample(int n, double[]x , double[] y)
         {
-            get { return y; }
+            this.n = n;
+
+            this.sample = new Point[n];
+            this.x = new double[n];
+            this.y = new double[n];
+
+            for (int i = 0; i < n; i++)
+            {
+                this.sample[i] = new Point(x[i], y[i]);
+                this.x[i] = x[i];
+                this.y[i] = y[i];
+            }
+            Array.Sort(sample, (p1, p2) => p1.x.CompareTo(p2.x));
         }
 
         double F(double x)
@@ -145,7 +167,7 @@ namespace KernelRegression
             }
         }
         
-        static double Round(double val, int n)
+        public static double Round(double val, int n)
         {
             return Convert.ToDouble(val.ToString("n" + n));
         }

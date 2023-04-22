@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms.DataVisualization.Charting;
 
@@ -35,12 +32,11 @@ namespace KernelRegression
             return Math.Exp(-0.5 * u * u) / Math.Sqrt(2.0 * Math.PI);
         }
 
-        public static double[] Regression(ref Sample sample, double h, string kernel)
+        public static double[] Regression(Sample sample, double h, string kernel)
         {
             var n = sample.n;
             double[] smoothedY = new double[sample.n];
-
-            for (int i = 0; i < n; i++)
+            Parallel.For(0, n, i =>
             {
                 double x = sample.x[i];
                 double numerator = 0;
@@ -50,7 +46,7 @@ namespace KernelRegression
                 {
                     double xi = sample.x[j];
                     double yi = sample.y[j];
-                    double kernelResult;
+                    double kernelResult = 0;
 
                     // Вычисляем значение ядра в зависимости от выбранного типа
                     switch (kernel)
@@ -67,10 +63,7 @@ namespace KernelRegression
                             kernelResult = TriangularKernel((x - xi) / h);
                             break;
 
-                        // Можно добавить другие типы ядер
-
-                        default:
-                            throw new ArgumentException("Неизвестный вид ядра.");
+                            // Можно добавить другие типы ядер
                     }
 
                     numerator += kernelResult * yi;
@@ -78,7 +71,7 @@ namespace KernelRegression
                 }
 
                 smoothedY[i] = numerator / denominator;
-            }
+            });
 
             return smoothedY;
         }
@@ -105,9 +98,20 @@ namespace KernelRegression
         {
             int n = sample.n;
 
-            var ySmoothed = Regression(ref sample, h, kernel);
+            var ySmoothed = Regression(sample, h, kernel);
 
 
+
+            chart.Series["regression"].Points.Clear();
+            for (int i = 0; i < n; i++)
+            {
+                chart.Series["regression"].Points.AddXY(sample.x[i], ySmoothed[i]);
+            }
+        }
+
+        public static void Plot(ref Sample sample, ref double[] ySmoothed,ref Chart chart)
+        {
+            int n = sample.n;
 
             chart.Series["regression"].Points.Clear();
             for (int i = 0; i < n; i++)
